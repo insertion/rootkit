@@ -30,3 +30,4 @@ http://lwn.net/Kernel/LDD3/
 
 ##Authors
 Ivyl and t3hknr.
+基于VFS，并没有修改系统调用表

