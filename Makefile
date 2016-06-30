@@ -1,11 +1,7 @@
-ifneq ($(KERNELRELEASE),)
-	obj-m := rt.o
-	obj-m += rt_sys_call.o
-else
-	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-	PWD := $(shell pwd)
-
-default:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
-
-endif
+obj-m += rt.o
+obj-m += rt_sys_call.o
+KVERSION = $(shell uname -r)
+all:
+	make -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
+clean:
+	make -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
