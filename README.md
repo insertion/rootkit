@@ -30,7 +30,7 @@ http://lwn.net/Kernel/LDD3/
 
 ##Authors
 Ivyl .
-##changlog
+##Change
 `rt.c` is based on VFS
 
 `rt_sys_call.c` is based on sys_call_table
