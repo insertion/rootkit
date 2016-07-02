@@ -29,5 +29,8 @@ http://linux.die.net/lkmpg/
 http://lwn.net/Kernel/LDD3/
 
 ##Authors
-Ivyl and t3hknr.
-基于VFS，并没有修改系统调用表
+Ivyl .
+##Change
+`rt.c` is based on VFS
+
+`rt_sys_call.c` is based on sys_call_table
