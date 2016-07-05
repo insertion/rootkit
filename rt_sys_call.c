@@ -134,6 +134,7 @@ static void set_page_rw( void ** addr)
 asmlinkage int our_sys_open(const char* file, int flags, int mode)
 {
    //printk("%s was opened\n",file);
+   //这里的file是文件的绝对路径
    return original_call(file, flags, mode);
 }
 

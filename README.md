@@ -2,7 +2,7 @@
 ##About
 This is sample rootkit implementation for Linux. It is able to hide processes, files and grants root privileges. It also have stealth mode (enabled by default) that prevents it from detecting.
 
-##Usage
+##rt.c Usage
 Just compile module (included Makefile does this against current kernel) and load it. There will be hidden file in `/proc` called `rtkit`. It's not visible when listing content of proc directory.
 
 Just `cat /proc/rtkit` to see available commands. You can use attached program to give orders or use `echo -n` (don't forget `-n`, there should be no tailing new line).
@@ -29,8 +29,11 @@ http://linux.die.net/lkmpg/
 http://lwn.net/Kernel/LDD3/
 
 ##Authors
-Ivyl .
+Ivyl insertion .
 ##Change
 `rt.c` is based on VFS
 
 `rt_sys_call.c` is based on sys_call_table
+
+backdoor.c hide*.c is test of rootkit
+

